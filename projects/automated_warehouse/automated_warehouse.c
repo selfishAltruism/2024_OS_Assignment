@@ -52,7 +52,9 @@ void run_automated_warehouse(char **argv)
         char *token = strtok_r(str, ":", &robotsSet);
 
         while (token != NULL) {
-                printf("Token: %d\n", atoi(token));
+                int mNum = atoi(token);
+                char loadingDock = token[strlen(token)-1];
+                printf("Token: %d + %c\n", mNum, loadingDock);
 
                 token = strtok_r(NULL, ":", &robotsSet);
         }
