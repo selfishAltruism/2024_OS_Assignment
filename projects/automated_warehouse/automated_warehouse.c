@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #include "threads/init.h"
 #include "threads/malloc.h"
@@ -38,11 +40,37 @@ void run_automated_warehouse(char **argv)
 
         printf("implement automated warehouse!\n");
 
+        
+        int robotsN = atoi(argv[1]);
+        char robotsSets[100] = argv[2];
+
+        printf("%s\n", robotsSets); 
+
+        char *robotsSet = strtok(robotsSets,":");
+
+        while (robotsSet != NULL)
+        {
+        char letter = *robotsSet;
+        robotsSet++;
+
+                int number = 0;
+                while (*robotsSet != '\0') { 
+                        if (*robotsSet >= '0' && *robotsSet <= '9') { 
+                        number = number * 10 + (*robotsSet - '0'); 
+                        }
+                        robotsSet++; 
+                }
+
+                printf("Letter: %c\n", letter);
+                printf("Number: %d\n", number);         
+                robotsSet = strtok(NULL, ":");      
+        }
+
         // test case robots
         robots = malloc(sizeof(struct robot) * 4);
-        setRobot(&robots[0], "R1", 5, 5, 0, 0);
+        setRobot(&robots[0], "R1", 5, 5, 1, 1);
         setRobot(&robots[1], "R2", 0, 2, 0, 0);
-        setRobot(&robots[2], "R3", 1, 1, 1, 1);
+        setRobot(&robots[2], "R3", 5, 5, 1, 1);
         setRobot(&robots[3], "R4", 5, 5, 0, 0);
 
         // example of create thread
