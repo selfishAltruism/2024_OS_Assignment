@@ -40,31 +40,23 @@ void run_automated_warehouse(char **argv)
 
         printf("implement automated warehouse!\n");
 
-        
         int robotsN = atoi(argv[1]);
-        char robotsSets[100] = argv[2];
 
-        printf("%s\n", robotsSets); 
+        char *robotsSet;
 
-        char *robotsSet = strtok(robotsSets,":");
-
-        while (robotsSet != NULL)
-        {
-        char letter = *robotsSet;
-        robotsSet++;
-
-                int number = 0;
-                while (*robotsSet != '\0') { 
-                        if (*robotsSet >= '0' && *robotsSet <= '9') { 
-                        number = number * 10 + (*robotsSet - '0'); 
-                        }
-                        robotsSet++; 
-                }
-
-                printf("Letter: %c\n", letter);
-                printf("Number: %d\n", number);         
-                robotsSet = strtok(NULL, ":");      
+        size_t len = strlen(argv[2]) + 1;
+        char *str = malloc(len); 
+        if (str != NULL) {
+                memcpy(str, argv[2], len);
         }
+        char *token = strtok_r(str, ":", &robotsSet);
+
+        while (token != NULL) {
+                printf("Token: %d\n", atoi(token));
+
+                token = strtok_r(NULL, ":", &robotsSet);
+        }
+        free(str);
 
         // test case robots
         robots = malloc(sizeof(struct robot) * 4);

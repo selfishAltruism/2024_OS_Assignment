@@ -8,6 +8,7 @@
         "string.h": "c",
         "synch.h": "c",
         "aw_manager.h": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "malloc.h": "c"
     }
 }
