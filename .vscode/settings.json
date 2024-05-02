@@ -9,6 +9,7 @@
         "synch.h": "c",
         "aw_manager.h": "c",
         "sstream": "c",
-        "malloc.h": "c"
+        "malloc.h": "c",
+        "timer.h": "c"
     }
 }
