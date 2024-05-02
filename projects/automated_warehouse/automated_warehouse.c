@@ -15,15 +15,14 @@
 struct robot* robots;
 
 struct cntPurpose {
-        struct robot robot;
+        struct robot *robot;
         int mNum;
         char loadingDock;
 };
 
-struct cntPurpose* cntPurposes;
-
 // test code for central control node thread
 void test_cnt(void* aux){
+        struct cntPurpose info = *((struct cntPurpose *)aux);
         while(1){
                 printf("%s", aux);
                 print_map(robots, 4);
@@ -34,11 +33,11 @@ void test_cnt(void* aux){
 
 // test code for robot thread
 void test_thread(void* aux){
-        int idx = *((int *)aux);
+        struct cntPurpose info = *((struct cntPurpose *)aux);
         int test = 0;
         while(1){
-                printf("thread %d : %d\n", idx, test++);
-                thread_sleep(idx * 1000);
+                printf("thread %s : %d\n", info.robot->name, test++);
+                thread_sleep(1000);
         }
 }
 
@@ -53,16 +52,18 @@ void run_automated_warehouse(char **argv)
         int robotsN = atoi(argv[1]);
 
         robots = malloc(sizeof(struct robot) * robotsN);
-        cntPurposes = malloc(sizeof(struct cntPurpose) * robotsN);
+        
 
         //thread define
-        tid_t* threads = malloc(sizeof(tid_t) * robotsN);
-        int idxs[robotsN];
-        for(int i = 1; i <= robotsN; i++){
-                idxs[i] = i;
-        }
+        tid_t* threads = malloc(sizeof(tid_t) * (robotsN + 1));
 
-        int i = 1;
+
+        //define cntPurposes
+        struct cntPurpose* cntPurposes;
+        cntPurposes = malloc(sizeof(struct cntPurpose) * (robotsN));
+
+
+        int i = 0;
         char *robotsSet;
         size_t len = strlen(argv[2]) + 1;
         char *str = malloc(len);
@@ -72,35 +73,32 @@ void run_automated_warehouse(char **argv)
         }
         char *token = strtok_r(str, ":", &robotsSet);
 
-        char* robotName;
-        robotName = malloc(sizeof(char) + sizeof(int));
-
         while (token != NULL) {
                 int mNum = atoi(token);
+                char* robotName;
+                robotName = malloc(sizeof(char) + sizeof(int));
 
-                snprintf(robotName, 4, "R%d", i);
+                snprintf(robotName, 4, "R%d", i+1);
 
                 char loadingDock = token[strlen(token)-1];
 
-                //delete
+                //will be delete part
                 printf("%s", robotName);
                 printf(": %d + %c\n", mNum, loadingDock);
+
+                cntPurposes[i].robot = &robots[i];
+                cntPurposes[i].mNum = mNum;
+                cntPurposes[i].loadingDock = loadingDock;
                 
+                //set robot & thread
                 setRobot(&robots[i], robotName, 5, 5, 0, 0);
+                threads[i + 1] = thread_create(robotName, 0, &test_thread, &cntPurposes[i]);
 
                 i++;
                 token = strtok_r(NULL, ":", &robotsSet);
         }
-        free(str);
-        free(robotName);
 
-        // example of create thread
+        threads[0] = thread_create("CNT", 0, &test_cnt, cntPurposes);
 
-        threads[0] = thread_create("CNT", 0, &test_cnt, "dddd\n");
-        threads[1] = thread_create("R1", 0, &test_thread, &idxs[1]);
-        threads[2] = thread_create("R2", 0, &test_thread, &idxs[2]);
-        threads[3] = thread_create("R3", 0, &test_thread, &idxs[3]);
-
-        // if you want, you can use main thread as a central control node
-        
+        free(str);  
 }
