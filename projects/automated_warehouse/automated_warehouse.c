@@ -49,40 +49,53 @@ void run_automated_warehouse(char **argv)
 
         printf("implement automated warehouse!\n");
 
+        //robot define
         int robotsN = atoi(argv[1]);
 
         robots = malloc(sizeof(struct robot) * robotsN);
         cntPurposes = malloc(sizeof(struct cntPurpose) * robotsN);
-        int i = 1;
 
+        //thread define
+        tid_t* threads = malloc(sizeof(tid_t) * robotsN);
+        int idxs[robotsN];
+        for(int i = 1; i <= robotsN; i++){
+                idxs[i] = i;
+        }
+
+        int i = 1;
         char *robotsSet;
         size_t len = strlen(argv[2]) + 1;
-        char *str = malloc(len); 
+        char *str = malloc(len);
+
         if (str != NULL) {
                 memcpy(str, argv[2], len);
         }
         char *token = strtok_r(str, ":", &robotsSet);
 
+        char* robotName;
+        robotName = malloc(sizeof(char) + sizeof(int));
+
         while (token != NULL) {
                 int mNum = atoi(token);
-                char* robotName;
-                robotName = malloc(sizeof(char) + sizeof(int));
+
                 snprintf(robotName, 4, "R%d", i);
 
                 char loadingDock = token[strlen(token)-1];
-                printf("Token: %d + %c\n", mNum, loadingDock);
-                printf("%s", robotName);
 
+                //delete
+                printf("%s", robotName);
+                printf(": %d + %c\n", mNum, loadingDock);
+                
                 setRobot(&robots[i], robotName, 5, 5, 0, 0);
 
                 i++;
                 token = strtok_r(NULL, ":", &robotsSet);
         }
         free(str);
+        free(robotName);
 
         // example of create thread
-        tid_t* threads = malloc(sizeof(tid_t) * 4);
-        int idxs[4] = {1, 2, 3, 4};
+
         threads[0] = thread_create("CNT", 0, &test_cnt, "dddd\n");
         threads[1] = thread_create("R1", 0, &test_thread, &idxs[1]);
         threads[2] = thread_create("R2", 0, &test_thread, &idxs[2]);
