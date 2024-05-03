@@ -30,6 +30,17 @@ void list_push_back(struct list_elem_with_data *elem) {
     blocked_threads.tail.prev = &(elem->elem);
 }
 
+//will be delete part
+void list_print() {
+    struct list_elem *current = blocked_threads.head.next;
+    while (current != &blocked_threads.tail) {
+        struct list_elem_with_data *elem_with_data = (struct list_elem_with_data *)current;
+        printf("%d ", elem_with_data->data);
+        current = current->next;
+    }
+    printf("\n");
+}
+
 /**
  * A function unblocking all blocked threads in "blocked_threads" 
  * It must be called by robot threads
@@ -38,7 +49,11 @@ void block_thread(){
     //will be delete part
     printf("%d\n", thread_current ()-> tid);
     
+    struct list_elem_with_data elem = {{NULL, NULL}, thread_current ()-> tid};
+    list_push_back(&elem);
 
+    printf("\nList elements: ");
+    list_print();
 
     // Code below is example
     enum intr_level old_level;
