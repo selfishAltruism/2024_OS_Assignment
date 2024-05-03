@@ -24,7 +24,7 @@ struct cntPurpose {
 void test_cnt(void* aux){
         struct cntPurpose info = *((struct cntPurpose *)aux);
         while(1){
-                printf("%s", aux);
+                printf("%d thread\n", thread_current ()-> tid);
                 print_map(robots, 4);
                 thread_sleep(1000);
         }
@@ -35,9 +35,9 @@ void test_thread(void* aux){
         struct cntPurpose info = *((struct cntPurpose *)aux);
         int test = 0;
         while(1){
-                printf("thread %s : %d\n", info.robot->name, test++);
-                thread_sleep(1000);
+                printf("%d thread %s : %d\n", thread_current ()-> tid, info.robot->name, test++);
                 block_thread();
+                thread_sleep(1000);
         }
 }
 
