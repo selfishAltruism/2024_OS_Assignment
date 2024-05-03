@@ -27,7 +27,6 @@ void test_cnt(void* aux){
                 printf("%s", aux);
                 print_map(robots, 4);
                 thread_sleep(1000);
-                block_thread();
         }
 }
 
@@ -38,6 +37,7 @@ void test_thread(void* aux){
         while(1){
                 printf("thread %s : %d\n", info.robot->name, test++);
                 thread_sleep(1000);
+                block_thread();
         }
 }
 

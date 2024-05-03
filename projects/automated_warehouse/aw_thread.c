@@ -15,6 +15,11 @@
 
 struct list blocked_threads;
 
+struct list_elem_with_data {
+    struct list_elem elem;
+    int data;
+};
+
 /**
  * A function unblocking all blocked threads in "blocked_threads" 
  * It must be called by robot threads
