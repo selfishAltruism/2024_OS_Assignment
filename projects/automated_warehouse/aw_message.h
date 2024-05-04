@@ -36,8 +36,8 @@ struct message_box {
 };
 
 /** message boxes from central control node to each robot */
-extern struct messsage_box* boxes_from_central_control_node;
+extern struct message_box* boxes_from_central_control_node;
 /** message boxes from robots to central control node */
-extern struct messsage_box* boxes_from_robots;
+extern struct message_box* boxes_from_robots;
 
 #endif
