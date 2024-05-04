@@ -71,12 +71,11 @@ void unblock_threads(){
             thread_unblock (popped_elem_with_thread->thread);
             intr_set_level (old_level);
 
-                //will be delete part
+            //will be delete part
             printf("\nList elements: ");
             list_print(&blocked_threads);
 
             if(popped_elem->prev == &blocked_threads.head)  break;
         }
     }
-
 }

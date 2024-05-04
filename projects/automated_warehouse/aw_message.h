@@ -28,7 +28,7 @@ struct message {
 /** 
  * Simple message box which can receive only one message from sender
 */
-struct messsage_box {
+struct message_box {
     /** check if the message was written by others */
     int dirtyBit;
     /** stored message */

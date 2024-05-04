@@ -10,6 +10,7 @@
         "aw_manager.h": "c",
         "sstream": "c",
         "malloc.h": "c",
-        "timer.h": "c"
+        "timer.h": "c",
+        "aw_message.h": "c"
     }
 }
