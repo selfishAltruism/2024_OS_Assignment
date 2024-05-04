@@ -48,6 +48,8 @@ void run_automated_warehouse(char **argv)
 
         printf("implement automated warehouse!\n");
 
+        list_init(&blocked_threads);
+
         //robot define
         int robotsN = atoi(argv[1]);
 

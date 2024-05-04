@@ -13,33 +13,23 @@
 //
 
 
-struct list blocked_threads = {
-    .head = { .prev = NULL, .next = &blocked_threads.tail },
-    .tail = { .prev = &blocked_threads.head, .next = NULL }
-};
+struct list blocked_threads;
 
 struct list_elem_with_data {
     struct list_elem elem;
     int data;
 };
 
-void list_push_back(struct list_elem_with_data *elem) {
-    elem->elem.prev = blocked_threads.tail.prev;
-    elem->elem.next = &blocked_threads.tail;
-    blocked_threads.tail.prev->next = &(elem->elem);
-    blocked_threads.tail.prev = &(elem->elem);
-}
-
-//will be delete part
-void list_print() {
-    struct list_elem *current = blocked_threads.head.next;
-    while (current != &blocked_threads.tail) {
+void list_print(struct list *list) {
+    struct list_elem *current = list->head.next;
+    while (current != &list->tail) {
         struct list_elem_with_data *elem_with_data = (struct list_elem_with_data *)current;
         printf("%d ", elem_with_data->data);
         current = current->next;
     }
     printf("\n");
 }
+
 
 /**
  * A function unblocking all blocked threads in "blocked_threads" 
@@ -48,12 +38,14 @@ void list_print() {
 void block_thread(){
     //will be delete part
     printf("%d\n", thread_current ()-> tid);
-    
-    struct list_elem_with_data elem = {{NULL, NULL}, thread_current ()-> tid};
-    list_push_back(&elem);
+
+    struct list_elem_with_data *elem = (struct list_elem_with_data *)malloc(sizeof(struct list_elem_with_data));
+    elem->data = thread_current()->tid;
+
+    list_push_back(&blocked_threads, &(elem->elem)); 
 
     printf("\nList elements: ");
-    list_print();
+    list_print(&blocked_threads);
 
     // Code below is example
     enum intr_level old_level;
