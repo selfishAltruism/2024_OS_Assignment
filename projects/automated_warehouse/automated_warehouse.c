@@ -48,6 +48,7 @@ void run_automated_warehouse(char **argv)
 
         printf("implement automated warehouse!\n");
 
+        //init blocked_threads
         list_init(&blocked_threads);
 
         //robot define

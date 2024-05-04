@@ -15,16 +15,16 @@
 
 struct list blocked_threads;
 
-struct list_elem_with_data {
+struct list_elem_with_thread {
     struct list_elem elem;
-    int data;
+    struct thread *thread; 
 };
 
 void list_print(struct list *list) {
     struct list_elem *current = list->head.next;
     while (current != &list->tail) {
-        struct list_elem_with_data *elem_with_data = (struct list_elem_with_data *)current;
-        printf("%d ", elem_with_data->data);
+        struct list_elem_with_thread *elem_with_thread = (struct list_elem_with_thread *)current;
+        printf("%d ", elem_with_thread->thread->tid);
         current = current->next;
     }
     printf("\n");
@@ -39,11 +39,12 @@ void block_thread(){
     //will be delete part
     printf("%d\n", thread_current ()-> tid);
 
-    struct list_elem_with_data *elem = (struct list_elem_with_data *)malloc(sizeof(struct list_elem_with_data));
-    elem->data = thread_current()->tid;
+    struct list_elem_with_thread *elem = (struct list_elem_with_thread *)malloc(sizeof(struct list_elem_with_thread));
+    elem->thread = thread_current();
 
     list_push_back(&blocked_threads, &(elem->elem)); 
 
+    //will be delete part
     printf("\nList elements: ");
     list_print(&blocked_threads);
 
@@ -60,4 +61,12 @@ void block_thread(){
  */
 void unblock_threads(){
     // you must implement this
+    struct list_elem *popped_elem = list_pop_back(&blocked_threads);
+    struct list_elem_with_thread *popped_elem_with_thread = (struct list_elem_with_thread *)popped_elem;
+
+    enum intr_level old_level;
+    old_level = intr_disable ();
+    thread_unblock ();
+    intr_set_level (old_level);
+
 }
