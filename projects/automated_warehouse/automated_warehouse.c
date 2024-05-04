@@ -10,6 +10,7 @@
 
 #include "devices/timer.h"
 
+#include "projects/automated_warehouse/aw_message.h"
 #include "projects/automated_warehouse/aw_manager.h"
 
 struct robot* robots;

@@ -12,6 +12,8 @@
         "malloc.h": "c",
         "timer.h": "c",
         "aw_message.h": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "stdlib.h": "c",
+        "stdio.h": "c"
     }
 }

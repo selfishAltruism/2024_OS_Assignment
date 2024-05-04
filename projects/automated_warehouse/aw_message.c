@@ -1,16 +1,15 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "projects/automated_warehouse/aw_message.h"
+
+struct message_box* boxes_from_central_control_node;
+struct message_box* boxes_from_robots;
 
 void allocate_message_boxes(int num_robots) {
     boxes_from_central_control_node = (struct message_box *)malloc(num_robots * sizeof(struct message_box));
-    if (boxes_from_central_control_node == 0) {
-        exit(1);
-    }
     
     boxes_from_robots = (struct message_box *)malloc(num_robots * sizeof(struct message_box));
-    if (boxes_from_robots == 0) {
-        free(boxes_from_central_control_node);
-        exit(1);
-    }
 }
 
 void deallocate_message_boxes() {

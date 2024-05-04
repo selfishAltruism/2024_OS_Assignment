@@ -40,4 +40,13 @@ extern struct message_box* boxes_from_central_control_node;
 /** message boxes from robots to central control node */
 extern struct message_box* boxes_from_robots;
 
+void allocate_message_boxes(int num_robots);
+void deallocate_message_boxes();
+
+void send_message_to_control_node(int tid, struct message msg);
+struct message receive_message_from_control_node(int tid);
+
+void send_message_to_robot(int tid, struct message msg);
+struct message receive_message_from_robot(int tid);
+
 #endif
