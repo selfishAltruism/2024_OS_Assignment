@@ -23,27 +23,34 @@ void deallocate_message_boxes() {
 }
 
 
-// 중앙 관제 노드로 메시지를 보내는 함수
-void send_message_to_control_node(int robot_id, struct message msg) {
-    // 메시지 박스에 메시지 저장
-    boxes_from_central_control_node[robot_id].msg = msg;
-    // dirtyBit 설정
-    boxes_from_central_control_node[robot_id].dirtyBit = 1;
+void send_message_to_control_node(int tid, struct message msg) {
+    boxes_from_central_control_node[tid].msg = msg;
+    boxes_from_central_control_node[tid].dirtyBit = 1;
 }
 
-// 중앙 관제 노드로부터 메시지를 받는 함수
-void receive_message_from_control_node(int robot_id) {
-    // 메시지 박스가 dirty 상태인지 확인
-    if (boxes_from_central_control_node[robot_id].dirtyBit) {
-        // 메시지를 받아옴
-        struct message received_msg = boxes_from_central_control_node[robot_id].msg;
-        // dirtyBit 초기화
-        boxes_from_central_control_node[robot_id].dirtyBit = 0;
+void receive_message_from_control_node(int tid) {
+    if (boxes_from_central_control_node[tid].dirtyBit) {
+        struct message received_msg = boxes_from_central_control_node[tid].msg;
+        boxes_from_central_control_node[tid].dirtyBit = 0;
 
-        // 받은 메시지를 처리한다.
-        // 예를 들어, 메시지를 어딘가에 저장하거나 처리하는 작업을 수행한다.
-        // 여기서는 간단히 출력만 하도록 하겠습니다.
-        printf("Message received from central control node by robot %d: Row=%d, Col=%d, Current Payload=%d, Required Payload=%d, Command=%d\n",
-               robot_id, received_msg.row, received_msg.col, received_msg.current_payload, received_msg.required_payload, received_msg.cmd);
+        return received_msg;
     }
+
+    return 0;
+}
+
+void send_message_to_robot(int tid, struct message msg) {
+    boxes_from_robots[tid].msg = msg;
+    boxes_from_robots[tid].dirtyBit = 1;
+}
+
+void receive_message_from_robot(int tid) {
+    if (boxes_from_robots[tid].dirtyBit) {
+        struct message received_msg = boxes_from_robots[tid].msg;
+        boxes_from_robots[tid].dirtyBit = 0;
+
+        return received_msg;
+    }
+    
+    return 0;
 }

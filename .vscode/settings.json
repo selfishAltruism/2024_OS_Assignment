@@ -11,6 +11,7 @@
         "sstream": "c",
         "malloc.h": "c",
         "timer.h": "c",
-        "aw_message.h": "c"
+        "aw_message.h": "c",
+        "system_error": "c"
     }
 }
