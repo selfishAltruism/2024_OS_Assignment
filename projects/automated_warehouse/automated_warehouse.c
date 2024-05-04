@@ -27,6 +27,8 @@ void test_cnt(void* aux){
                 printf("%d thread\n", thread_current ()-> tid);
                 print_map(robots, 4);
                 thread_sleep(1000);
+
+                unblock_threads();
         }
 }
 

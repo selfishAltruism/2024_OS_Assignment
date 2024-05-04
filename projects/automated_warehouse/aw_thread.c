@@ -61,12 +61,22 @@ void block_thread(){
  */
 void unblock_threads(){
     // you must implement this
-    struct list_elem *popped_elem = list_pop_back(&blocked_threads);
-    struct list_elem_with_thread *popped_elem_with_thread = (struct list_elem_with_thread *)popped_elem;
+    if(blocked_threads.head.next != &blocked_threads.tail) {
+        while (1) {
+            struct list_elem *popped_elem = list_pop_back(&blocked_threads);
+            struct list_elem_with_thread *popped_elem_with_thread = (struct list_elem_with_thread *)popped_elem;
+            
+            enum intr_level old_level;
+            old_level = intr_disable ();
+            thread_unblock (popped_elem_with_thread->thread);
+            intr_set_level (old_level);
 
-    enum intr_level old_level;
-    old_level = intr_disable ();
-    thread_unblock ();
-    intr_set_level (old_level);
+                //will be delete part
+            printf("\nList elements: ");
+            list_print(&blocked_threads);
+
+            if(popped_elem->prev == &blocked_threads.head)  break;
+        }
+    }
 
 }
