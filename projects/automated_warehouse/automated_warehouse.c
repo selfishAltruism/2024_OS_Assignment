@@ -99,11 +99,10 @@ void test_cnt(void* aux){
                         send_message_to_control_node(i, move_msg);
 
                         unblock_threads();
+                        increase_step();
 
                         while(receive_message_from_robot(i).cmd == -1){
                         }
-                                
-                        printf("\nreceive!\n");
 
                         print_map(robots, robotsN);
                 }
@@ -119,6 +118,7 @@ void test_cnt(void* aux){
                         send_message_to_control_node(i, move_msg);
 
                         unblock_threads();
+                        increase_step();
 
                 //move to unloading area
                 findValue(cnt_purposes[i].loadingDock, &dest_row, &dest_col);
@@ -147,21 +147,20 @@ void test_cnt(void* aux){
                         send_message_to_control_node(i, move_msg);
 
                         unblock_threads();
+                        increase_step();
 
                         while(receive_message_from_robot(i).cmd == -1){
                         }
-                                
-                        printf("\nreceive!\n");
 
                         print_map(robots, robotsN);
                 }
         }
+        printf("\nfinish!!!!!!\n");
 }
 
 // test code for robot thread
 void test_thread(void* aux){
         struct cnt_purpose info = *((struct cnt_purpose *)aux);
-        printf("%d thread %s : %d\n", thread_current ()-> tid, info.robot->name);
 
         block_thread();
 
@@ -173,8 +172,6 @@ void test_thread(void* aux){
         while(1){
                 cnt_message = receive_message_from_control_node(message_index);
                 if(cnt_message.cmd > -1){
-                        printf("\nok");
-                        
                         setRobot(info.robot, info.robot->name, cnt_message.row, cnt_message.col, cnt_message.required_payload, cnt_message.current_payload);
 
                         struct message message = {
@@ -236,10 +233,6 @@ void run_automated_warehouse(char **argv)
                 snprintf(robotName, 4, "R%d", i+1);
 
                 char loadingDock = token[strlen(token)-1];
-
-                //will be delete part
-                printf("\n%s", robotName);
-                printf(": %d + %c", mNum, loadingDock);
 
                 setRobot(&robots[i], robotName, 5, 5, 0, mNum);
 
