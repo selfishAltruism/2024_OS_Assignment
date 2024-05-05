@@ -32,10 +32,10 @@ struct purpose {
 // 현재 위치에서 이동 가능한지 확인하는 함수
 int is_valid_move(int row, int col, char direction) {
     switch (direction) {
-        case 'U': return map_draw_default[row - 1][col] != 'X'; 
-        case 'D': return map_draw_default[row + 1][col] != 'X'; 
-        case 'L': return map_draw_default[row][col - 1] != 'X'; 
-        case 'R': return map_draw_default[row][col + 1] != 'X'; 
+        case 'U': return map_draw_default[row - 1][col] != 'X' && map_draw_default[row - 1][col] != 'W'; 
+        case 'D': return map_draw_default[row + 1][col] != 'X' && map_draw_default[row + 1][col] != 'W'; 
+        case 'L': return map_draw_default[row][col - 1] != 'X' && map_draw_default[row][col - 1] != 'W'; 
+        case 'R': return map_draw_default[row][col + 1] != 'X' && map_draw_default[row][col + 1] != 'W'; 
         default: return 0; 
     }
 }
@@ -70,47 +70,92 @@ void test_cnt(void* aux){
         char mNum;
 
         for(int i = 0; i < robotsN; i++){
-                mNum = cnt_purposes->mNum + '0';
+                
+                //move to loading area
+                mNum = cnt_purposes[i].mNum + '0';
                 findValue(mNum, &dest_row, &dest_col);
 
                 while (current_row != dest_row || current_col != dest_col) {
-                // 이동할 방향 결정
+                        if (current_row > dest_row && is_valid_move(current_row, current_col, 'U')) {
+                                current_row--;
+                        } else if (current_row < dest_row && is_valid_move(current_row, current_col, 'D')) {
+                                current_row++;
+                        } else if (current_col > dest_col && is_valid_move(current_row, current_col, 'L')) {
+                                current_col--;
+                        } else if (current_col < dest_col && is_valid_move(current_row, current_col, 'R')) {
+                                current_col++; 
+                        } else {
+                                printf("Error: Cannot move to destination.\n");
+                                break;
+                        }
 
-                if (current_row > dest_row && is_valid_move(current_row, current_col, 'U')) {
-                        current_row--;
-                } else if (current_row < dest_row && is_valid_move(current_row, current_col, 'D')) {
-                        current_row++;
-                } else if (current_col > dest_col && is_valid_move(current_row, current_col, 'L')) {
-                        current_col--;
-                } else if (current_col < dest_col && is_valid_move(current_row, current_col, 'R')) {
-                        current_col++; 
-                } else {
-                        // 이동할 수 없는 경우, 에러 처리 등 필요한 작업 수행
-                        printf("Error: Cannot move to destination.\n");
-                        break;
+                        struct message move_msg = {
+                                row: current_row,
+                                col: current_col,
+                                current_payload: 0,
+                                required_payload: cnt_purposes[i].mNum,
+                                cmd: 0
+                        };
+                        send_message_to_control_node(i, move_msg);
+
+                        unblock_threads();
+
+                        while(receive_message_from_robot(i).cmd == -1){
+                        }
+                                
+                        printf("\nreceive!\n");
+
+                        print_map(robots, robotsN);
                 }
 
-                // 이동 메시지 보내기
-                struct message move_msg = {
-                        row: current_row,
-                        col: current_col,
-                        current_payload: 0,
-                        required_payload: 0,
-                        cmd: 0
-                };
-                send_message_to_control_node(0, move_msg);
+                //loading
+                        struct message move_msg = {
+                                row: current_row,
+                                col: current_col,
+                                current_payload: cnt_purposes[i].mNum,
+                                required_payload: cnt_purposes[i].mNum,
+                                cmd: 0
+                        };
+                        send_message_to_control_node(i, move_msg);
 
-                unblock_threads();
+                        unblock_threads();
 
-                while(receive_message_from_robot(0).cmd == -1){
-                }
-                        
-                printf("\nreceive!\n");
+                //move to unloading area
+                findValue(cnt_purposes[i].loadingDock, &dest_row, &dest_col);
 
-                print_map(robots, robotsN);
+                while (current_row != dest_row || current_col != dest_col) {
+                        if (current_row > dest_row && is_valid_move(current_row, current_col, 'U')) {
+                                current_row--;
+                        } else if (current_row < dest_row && is_valid_move(current_row, current_col, 'D')) {
+                                current_row++;
+                        } else if (current_col > dest_col && is_valid_move(current_row, current_col, 'L')) {
+                                current_col--;
+                        } else if (current_col < dest_col && is_valid_move(current_row, current_col, 'R')) {
+                                current_col++; 
+                        } else {
+                                printf("Error: Cannot move to destination.\n");
+                                break;
+                        }
+
+                        struct message move_msg = {
+                                row: current_row,
+                                col: current_col,
+                                current_payload: cnt_purposes[i].mNum,
+                                required_payload: cnt_purposes[i].mNum,
+                                cmd: 0
+                        };
+                        send_message_to_control_node(i, move_msg);
+
+                        unblock_threads();
+
+                        while(receive_message_from_robot(i).cmd == -1){
+                        }
+                                
+                        printf("\nreceive!\n");
+
+                        print_map(robots, robotsN);
                 }
         }
-        printf("\n %d %d", current_row, current_col);
 }
 
 // test code for robot thread
@@ -120,18 +165,14 @@ void test_thread(void* aux){
 
         block_thread();
 
+
         struct message cnt_message;
 
         int message_index = info.robot->name[1] - '0' - 1;
 
-        if(strcmp(info.robot->name, "R1") == 0){
-
-                while(1){
-                        cnt_message = receive_message_from_control_node(message_index);
-                        while(cnt_message.cmd == -1){
-                                cnt_message = receive_message_from_control_node(message_index);
-                        }
-
+        while(1){
+                cnt_message = receive_message_from_control_node(message_index);
+                if(cnt_message.cmd > -1){
                         printf("\nok");
                         
                         setRobot(info.robot, info.robot->name, cnt_message.row, cnt_message.col, cnt_message.required_payload, cnt_message.current_payload);
@@ -145,11 +186,7 @@ void test_thread(void* aux){
                         };
 
                         send_message_to_robot(message_index,message);
-
-                        block_thread();
                 }
-
-        }else{
                 block_thread();
         }
         
