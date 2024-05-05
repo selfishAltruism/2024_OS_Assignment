@@ -13,6 +13,9 @@
 #include "projects/automated_warehouse/aw_message.h"
 #include "projects/automated_warehouse/aw_manager.h"
 
+#define MAP_DRAW_DEFAULT_ROW 6
+#define MAP_DRAW_DEFAULT_COL 7
+
 struct robot* robots;
 
 struct cnt_purpose {
@@ -37,21 +40,40 @@ int is_valid_move(int row, int col, char direction) {
     }
 }
 
+void findValue(char value, int* row_index, int* col_index) {
+    *row_index = -1; 
+    *col_index = -1; 
+
+    for (int i = 0; i < MAP_DRAW_DEFAULT_ROW; i++) {
+        for (int j = 0; j < MAP_DRAW_DEFAULT_COL; j++) {
+            if (map_draw_default[i][j] == value) {
+                *row_index = i;
+                *col_index = j;
+                return;
+            }
+        }
+    }
+}
+
 // test code for central control node thread
 void test_cnt(void* aux){
         struct purpose *purpose = ((struct cnt_purpose *)aux);
         struct cnt_purpose *cnt_purposes = purpose->cnt_purposes;
         int robotsN = purpose->robotsN;
 
-        printf("\n%s\n", cnt_purposes->robot->name);
+        int dest_row;
+        int dest_col;
 
-        int dest_row = 2;
-        int dest_col = 0;
+        int current_row = 5;
+        int current_col = 5;
 
-        int current_row = 1;
-        int current_col = 1;
+        char mNum;
 
-        while (current_row != dest_row || current_col != dest_col) {
+        for(int i = 0; i < robotsN; i++){
+                mNum = cnt_purposes->mNum + '0';
+                findValue(mNum, &dest_row, &dest_col);
+
+                while (current_row != dest_row || current_col != dest_col) {
                 // 이동할 방향 결정
 
                 if (current_row > dest_row && is_valid_move(current_row, current_col, 'U')) {
@@ -70,11 +92,11 @@ void test_cnt(void* aux){
 
                 // 이동 메시지 보내기
                 struct message move_msg = {
-                row: current_row,
-                col: current_col,
-                current_payload: 0,
-                required_payload: 0,
-                cmd: 0
+                        row: current_row,
+                        col: current_col,
+                        current_payload: 0,
+                        required_payload: 0,
+                        cmd: 0
                 };
                 send_message_to_control_node(0, move_msg);
 
@@ -86,6 +108,7 @@ void test_cnt(void* aux){
                 printf("\nreceive!\n");
 
                 print_map(robots, robotsN);
+                }
         }
         printf("\n %d %d", current_row, current_col);
 }
@@ -99,13 +122,14 @@ void test_thread(void* aux){
 
         struct message cnt_message;
 
+        int message_index = info.robot->name[1] - '0' - 1;
+
         if(strcmp(info.robot->name, "R1") == 0){
 
                 while(1){
-                        cnt_message = receive_message_from_control_node(0);
+                        cnt_message = receive_message_from_control_node(message_index);
                         while(cnt_message.cmd == -1){
-                                cnt_message = receive_message_from_control_node(0);
-                                printf("\n%d", cnt_message.cmd);
+                                cnt_message = receive_message_from_control_node(message_index);
                         }
 
                         printf("\nok");
@@ -120,7 +144,7 @@ void test_thread(void* aux){
                                 cmd: 1
                         };
 
-                        send_message_to_robot(0,message);
+                        send_message_to_robot(message_index,message);
 
                         block_thread();
                 }
@@ -177,15 +201,15 @@ void run_automated_warehouse(char **argv)
                 char loadingDock = token[strlen(token)-1];
 
                 //will be delete part
-                printf("%s", robotName);
-                printf(": %d + %c\n", mNum, loadingDock);
+                printf("\n%s", robotName);
+                printf(": %d + %c", mNum, loadingDock);
+
+                setRobot(&robots[i], robotName, 5, 5, 0, mNum);
 
                 cnt_purposes[i].robot = &robots[i];
                 cnt_purposes[i].mNum = mNum;
                 cnt_purposes[i].loadingDock = loadingDock;
                 
-                //set robot & thread
-                setRobot(&robots[i], robotName, 5, 5, 0, 0);
                 threads[i + 1] = thread_create(robotName, 0, &test_thread, &cnt_purposes[i]);
 
                 i++;
