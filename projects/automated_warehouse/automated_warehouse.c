@@ -15,32 +15,41 @@
 
 struct robot* robots;
 
-struct cntPurpose {
+struct cnt_purpose {
         struct robot *robot;
         int mNum;
         char loadingDock;
 };
 
+struct purpose {
+        struct cnt_purpose* cnt_purposes;
+        int robotsN;
+};
+
 // 현재 위치에서 이동 가능한지 확인하는 함수
 int is_valid_move(int row, int col, char direction) {
     switch (direction) {
-        case 'U': return map_draw_default[row - 1][col] != 'X'; // 위로 이동 가능한지 확인
-        case 'D': return map_draw_default[row + 1][col] != 'X'; // 아래로 이동 가능한지 확인
-        case 'L': return map_draw_default[row][col - 1] != 'X'; // 왼쪽으로 이동 가능한지 확인
-        case 'R': return map_draw_default[row][col + 1] != 'X'; // 오른쪽으로 이동 가능한지 확인
-        default: return 0; // 잘못된 방향일 경우 이동 불가능
+        case 'U': return map_draw_default[row - 1][col] != 'X'; 
+        case 'D': return map_draw_default[row + 1][col] != 'X'; 
+        case 'L': return map_draw_default[row][col - 1] != 'X'; 
+        case 'R': return map_draw_default[row][col + 1] != 'X'; 
+        default: return 0; 
     }
 }
 
 // test code for central control node thread
 void test_cnt(void* aux){
-        struct cntPurpose *info = ((struct cntPurpose *)aux);
+        struct purpose *purpose = ((struct cnt_purpose *)aux);
+        struct cnt_purpose *cnt_purposes = purpose->cnt_purposes;
+        int robotsN = purpose->robotsN;
 
-        int dest_row = 1;
-        int dest_col = 1;
+        printf("\n%s\n", cnt_purposes->robot->name);
 
-        int current_row = 5;
-        int current_col = 5;
+        int dest_row = 2;
+        int dest_col = 0;
+
+        int current_row = 1;
+        int current_col = 1;
 
         while (current_row != dest_row || current_col != dest_col) {
                 // 이동할 방향 결정
@@ -75,14 +84,15 @@ void test_cnt(void* aux){
                 }
                         
                 printf("\nreceive!\n");
-                print_map(robots, 5);
+
+                print_map(robots, robotsN);
         }
         printf("\n %d %d", current_row, current_col);
 }
 
 // test code for robot thread
 void test_thread(void* aux){
-        struct cntPurpose info = *((struct cntPurpose *)aux);
+        struct cnt_purpose info = *((struct cnt_purpose *)aux);
         printf("%d thread %s : %d\n", thread_current ()-> tid, info.robot->name);
 
         block_thread();
@@ -133,17 +143,15 @@ void run_automated_warehouse(char **argv)
 
         //robot define
         int robotsN = atoi(argv[1]);
-
         robots = malloc(sizeof(struct robot) * robotsN);
         
 
         //thread define
         tid_t* threads = malloc(sizeof(tid_t) * (robotsN + 1));
 
-
-        //define cntPurposes
-        struct cntPurpose* cntPurposes;
-        cntPurposes = malloc(sizeof(struct cntPurpose) * (robotsN));
+        //define cnt_purposes
+        struct cnt_purpose* cnt_purposes;
+        cnt_purposes = malloc(sizeof(struct cnt_purpose) * (robotsN));
 
         //define message_boxes
         allocate_message_boxes(robotsN);
@@ -172,19 +180,24 @@ void run_automated_warehouse(char **argv)
                 printf("%s", robotName);
                 printf(": %d + %c\n", mNum, loadingDock);
 
-                cntPurposes[i].robot = &robots[i];
-                cntPurposes[i].mNum = mNum;
-                cntPurposes[i].loadingDock = loadingDock;
+                cnt_purposes[i].robot = &robots[i];
+                cnt_purposes[i].mNum = mNum;
+                cnt_purposes[i].loadingDock = loadingDock;
                 
                 //set robot & thread
                 setRobot(&robots[i], robotName, 5, 5, 0, 0);
-                threads[i + 1] = thread_create(robotName, 0, &test_thread, &cntPurposes[i]);
+                threads[i + 1] = thread_create(robotName, 0, &test_thread, &cnt_purposes[i]);
 
                 i++;
                 token = strtok_r(NULL, ":", &robotsSet);
         }
 
-        threads[0] = thread_create("CNT", 0, &test_cnt, cntPurposes);
+        struct purpose purpose = {
+                cnt_purposes: cnt_purposes,
+                robotsN: robotsN,
+        };
+
+        threads[0] = thread_create("CNT", 0, &test_cnt, &purpose);
 
         free(str);  
 }
