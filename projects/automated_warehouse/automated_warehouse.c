@@ -21,27 +21,104 @@ struct cntPurpose {
         char loadingDock;
 };
 
+// 현재 위치에서 이동 가능한지 확인하는 함수
+int is_valid_move(int row, int col, char direction) {
+    switch (direction) {
+        case 'U': return map_draw_default[row - 1][col] != 'X'; // 위로 이동 가능한지 확인
+        case 'D': return map_draw_default[row + 1][col] != 'X'; // 아래로 이동 가능한지 확인
+        case 'L': return map_draw_default[row][col - 1] != 'X'; // 왼쪽으로 이동 가능한지 확인
+        case 'R': return map_draw_default[row][col + 1] != 'X'; // 오른쪽으로 이동 가능한지 확인
+        default: return 0; // 잘못된 방향일 경우 이동 불가능
+    }
+}
+
 // test code for central control node thread
 void test_cnt(void* aux){
-        struct cntPurpose info = *((struct cntPurpose *)aux);
-        while(1){
-                printf("%d thread\n", thread_current ()-> tid);
-                print_map(robots, 4);
-                thread_sleep(1000);
+        struct cntPurpose *info = ((struct cntPurpose *)aux);
+
+        int dest_row = 1;
+        int dest_col = 1;
+
+        int current_row = 5;
+        int current_col = 5;
+
+        while (current_row != dest_row || current_col != dest_col) {
+                // 이동할 방향 결정
+
+                if (current_row > dest_row && is_valid_move(current_row, current_col, 'U')) {
+                        current_row--;
+                } else if (current_row < dest_row && is_valid_move(current_row, current_col, 'D')) {
+                        current_row++;
+                } else if (current_col > dest_col && is_valid_move(current_row, current_col, 'L')) {
+                        current_col--;
+                } else if (current_col < dest_col && is_valid_move(current_row, current_col, 'R')) {
+                        current_col++; 
+                } else {
+                        // 이동할 수 없는 경우, 에러 처리 등 필요한 작업 수행
+                        printf("Error: Cannot move to destination.\n");
+                        break;
+                }
+
+                // 이동 메시지 보내기
+                struct message move_msg = {
+                row: current_row,
+                col: current_col,
+                current_payload: 0,
+                required_payload: 0,
+                cmd: 0
+                };
+                send_message_to_control_node(0, move_msg);
 
                 unblock_threads();
+
+                while(receive_message_from_robot(0).cmd == -1){
+                }
+                        
+                printf("\nreceive!\n");
+                print_map(robots, 5);
         }
+        printf("\n %d %d", current_row, current_col);
 }
 
 // test code for robot thread
 void test_thread(void* aux){
         struct cntPurpose info = *((struct cntPurpose *)aux);
-        int test = 0;
-        while(1){
-                printf("%d thread %s : %d\n", thread_current ()-> tid, info.robot->name, test++);
+        printf("%d thread %s : %d\n", thread_current ()-> tid, info.robot->name);
+
+        block_thread();
+
+        struct message cnt_message;
+
+        if(strcmp(info.robot->name, "R1") == 0){
+
+                while(1){
+                        cnt_message = receive_message_from_control_node(0);
+                        while(cnt_message.cmd == -1){
+                                cnt_message = receive_message_from_control_node(0);
+                                printf("\n%d", cnt_message.cmd);
+                        }
+
+                        printf("\nok");
+                        
+                        setRobot(info.robot, info.robot->name, cnt_message.row, cnt_message.col, cnt_message.required_payload, cnt_message.current_payload);
+
+                        struct message message = {
+                                row: 0,
+                                col: 0,
+                                current_payload: 0,
+                                required_payload: 0,
+                                cmd: 1
+                        };
+
+                        send_message_to_robot(0,message);
+
+                        block_thread();
+                }
+
+        }else{
                 block_thread();
-                thread_sleep(1000);
         }
+        
 }
 
 // entry point of simulator
@@ -67,6 +144,9 @@ void run_automated_warehouse(char **argv)
         //define cntPurposes
         struct cntPurpose* cntPurposes;
         cntPurposes = malloc(sizeof(struct cntPurpose) * (robotsN));
+
+        //define message_boxes
+        allocate_message_boxes(robotsN);
 
 
         int i = 0;

@@ -26,30 +26,30 @@ struct message empty_message = {
 };
 
 
-void send_message_to_control_node(int tid, struct message msg) {
-    boxes_from_central_control_node[tid].msg = msg;
-    boxes_from_central_control_node[tid].dirtyBit = 1;
+void send_message_to_control_node(int id, struct message msg) {
+    boxes_from_central_control_node[id].msg = msg;
+    boxes_from_central_control_node[id].dirtyBit = 1;
 }
 
-struct message receive_message_from_control_node(int tid) {
-    if (boxes_from_central_control_node[tid].dirtyBit) {
-        struct message received_msg = boxes_from_central_control_node[tid].msg;
-        boxes_from_central_control_node[tid].dirtyBit = 0;
+struct message receive_message_from_control_node(int id) {
+    if (boxes_from_central_control_node[id].dirtyBit) {
+        struct message received_msg = boxes_from_central_control_node[id].msg;
+        boxes_from_central_control_node[id].dirtyBit = 0;
 
         return received_msg;
     }
     return empty_message;
 }
 
-void send_message_to_robot(int tid, struct message msg) {
-    boxes_from_robots[tid].msg = msg;
-    boxes_from_robots[tid].dirtyBit = 1;
+void send_message_to_robot(int id, struct message msg) {
+    boxes_from_robots[id].msg = msg;
+    boxes_from_robots[id].dirtyBit = 1;
 }
 
-struct message receive_message_from_robot(int tid) {
-    if (boxes_from_robots[tid].dirtyBit) {
-        struct message received_msg = boxes_from_robots[tid].msg;
-        boxes_from_robots[tid].dirtyBit = 0;
+struct message receive_message_from_robot(int id) {
+    if (boxes_from_robots[id].dirtyBit) {
+        struct message received_msg = boxes_from_robots[id].msg;
+        boxes_from_robots[id].dirtyBit = 0;
 
         return received_msg;
     }
