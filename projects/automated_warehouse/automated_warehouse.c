@@ -20,8 +20,8 @@ struct robot* robots;
 
 struct cnt_purpose {
         struct robot *robot;
-        int mNum;
-        char loadingDock;
+        int loading_area;
+        char unloading_area;
 };
 
 struct purpose {
@@ -29,7 +29,6 @@ struct purpose {
         int robotsN;
 };
 
-// 현재 위치에서 이동 가능한지 확인하는 함수
 int is_valid_move(int row, int col, char direction) {
     switch (direction) {
         case 'U': return map_draw_default[row - 1][col] != 'X' && map_draw_default[row - 1][col] != 'W'; 
@@ -56,7 +55,7 @@ void findValue(char value, int* row_index, int* col_index) {
 }
 
 // test code for central control node thread
-void test_cnt(void* aux){
+void control_cnt(void* aux){
         struct purpose *purpose = ((struct cnt_purpose *)aux);
         struct cnt_purpose *cnt_purposes = purpose->cnt_purposes;
         int robotsN = purpose->robotsN;
@@ -64,16 +63,21 @@ void test_cnt(void* aux){
         int dest_row;
         int dest_col;
 
-        int current_row = 5;
-        int current_col = 5;
+        int current_row;
+        int current_col;
 
-        char mNum;
+        char loading_area;
+
+        printf("\nautomated warehouse starts operating!\n");
 
         for(int i = 0; i < robotsN; i++){
+
+                current_row = 5;
+                current_col = 5;
                 
-                //move to loading area
-                mNum = cnt_purposes[i].mNum + '0';
-                findValue(mNum, &dest_row, &dest_col);
+                //move to loading area phase
+                loading_area = cnt_purposes[i].loading_area + '0';
+                findValue(loading_area, &dest_row, &dest_col);
 
                 while (current_row != dest_row || current_col != dest_col) {
                         if (current_row > dest_row && is_valid_move(current_row, current_col, 'U')) {
@@ -93,7 +97,7 @@ void test_cnt(void* aux){
                                 row: current_row,
                                 col: current_col,
                                 current_payload: 0,
-                                required_payload: cnt_purposes[i].mNum,
+                                required_payload: cnt_purposes[i].loading_area,
                                 cmd: 0
                         };
                         send_message_to_control_node(i, move_msg);
@@ -104,24 +108,31 @@ void test_cnt(void* aux){
                         while(receive_message_from_robot(i).cmd == -1){
                         }
 
+                        printf("\n===========================\n");
                         print_map(robots, robotsN);
                 }
 
-                //loading
-                        struct message move_msg = {
-                                row: current_row,
-                                col: current_col,
-                                current_payload: cnt_purposes[i].mNum,
-                                required_payload: cnt_purposes[i].mNum,
-                                cmd: 0
-                        };
-                        send_message_to_control_node(i, move_msg);
+                //loading phase
+                struct message move_msg = {
+                        row: current_row,
+                        col: current_col,
+                        current_payload: cnt_purposes[i].loading_area,
+                        required_payload: cnt_purposes[i].loading_area,
+                        cmd: 0
+                };
+                send_message_to_control_node(i, move_msg);
 
-                        unblock_threads();
-                        increase_step();
+                unblock_threads();
+                increase_step();
 
-                //move to unloading area
-                findValue(cnt_purposes[i].loadingDock, &dest_row, &dest_col);
+                while(receive_message_from_robot(i).cmd == -1){
+                }
+
+                printf("\n===========================\n");
+                print_map(robots, robotsN);
+
+                //move to unloading area phase
+                findValue(cnt_purposes[i].unloading_area, &dest_row, &dest_col);
 
                 while (current_row != dest_row || current_col != dest_col) {
                         if (current_row > dest_row && is_valid_move(current_row, current_col, 'U')) {
@@ -140,8 +151,8 @@ void test_cnt(void* aux){
                         struct message move_msg = {
                                 row: current_row,
                                 col: current_col,
-                                current_payload: cnt_purposes[i].mNum,
-                                required_payload: cnt_purposes[i].mNum,
+                                current_payload: cnt_purposes[i].loading_area,
+                                required_payload: cnt_purposes[i].loading_area,
                                 cmd: 0
                         };
                         send_message_to_control_node(i, move_msg);
@@ -152,25 +163,26 @@ void test_cnt(void* aux){
                         while(receive_message_from_robot(i).cmd == -1){
                         }
 
+                        printf("\n===========================\n");
                         print_map(robots, robotsN);
                 }
         }
-        printf("\nfinish!!!!!!\n");
+
+        printf("\nautomated warehouse operational complete!\n");
 }
 
 // test code for robot thread
-void test_thread(void* aux){
+void control_thread(void* aux){
         struct cnt_purpose info = *((struct cnt_purpose *)aux);
 
         block_thread();
 
-
         struct message cnt_message;
-
         int message_index = info.robot->name[1] - '0' - 1;
 
         while(1){
                 cnt_message = receive_message_from_control_node(message_index);
+
                 if(cnt_message.cmd > -1){
                         setRobot(info.robot, info.robot->name, cnt_message.row, cnt_message.col, cnt_message.required_payload, cnt_message.current_payload);
 
@@ -184,6 +196,7 @@ void test_thread(void* aux){
 
                         send_message_to_robot(message_index,message);
                 }
+                
                 block_thread();
         }
         
@@ -226,21 +239,21 @@ void run_automated_warehouse(char **argv)
         char *token = strtok_r(str, ":", &robotsSet);
 
         while (token != NULL) {
-                int mNum = atoi(token);
+                int loading_area = atoi(token);
                 char* robotName;
                 robotName = malloc(sizeof(char) + sizeof(int));
 
                 snprintf(robotName, 4, "R%d", i+1);
 
-                char loadingDock = token[strlen(token)-1];
+                char unloading_area = token[strlen(token)-1];
 
-                setRobot(&robots[i], robotName, 5, 5, 0, mNum);
+                setRobot(&robots[i], robotName, 5, 5, 0, loading_area);
 
                 cnt_purposes[i].robot = &robots[i];
-                cnt_purposes[i].mNum = mNum;
-                cnt_purposes[i].loadingDock = loadingDock;
+                cnt_purposes[i].loading_area = loading_area;
+                cnt_purposes[i].unloading_area = unloading_area;
                 
-                threads[i + 1] = thread_create(robotName, 0, &test_thread, &cnt_purposes[i]);
+                threads[i + 1] = thread_create(robotName, 0,  control_thread, &cnt_purposes[i]);
 
                 i++;
                 token = strtok_r(NULL, ":", &robotsSet);
@@ -251,7 +264,7 @@ void run_automated_warehouse(char **argv)
                 robotsN: robotsN,
         };
 
-        threads[0] = thread_create("CNT", 0, &test_cnt, &purpose);
+        threads[0] = thread_create("CNT", 0, &control_cnt, &purpose);
 
         free(str);  
 }
