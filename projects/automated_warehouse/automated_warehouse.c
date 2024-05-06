@@ -93,19 +93,36 @@ void control_cnt(void* aux){
                                 break;
                         }
 
-                        struct message move_msg = {
-                                row: current_row,
-                                col: current_col,
-                                current_payload: 0,
-                                required_payload: cnt_purposes[i].loading_area,
-                                cmd: 0
-                        };
-                        send_message_to_control_node(i, move_msg);
+                        for(int j = 0; j < robotsN; j++){
+                                if(j == i){
+                                        struct message move_msg = {
+                                                row: current_row,
+                                                col: current_col,
+                                                current_payload: 0,
+                                                required_payload: cnt_purposes[i].loading_area,
+                                                cmd: 0
+                                        };
+                                        send_message_to_control_node(i, move_msg);
+                                }else{
+                                        struct message standby_msg = {
+                                                row: -1,
+                                                col: -1,
+                                                current_payload: -1,
+                                                required_payload: -1,
+                                                cmd: 0
+                                        };
+                                        send_message_to_control_node(j, standby_msg);
+                                }                        
+                        }
+
 
                         unblock_threads();
                         increase_step();
 
-                        while(receive_message_from_robot(i).cmd == -1){
+                        //stand by message
+                        for(int j = 0; j < robotsN; j++){
+                                while(receive_message_from_robot(j).cmd < 0){
+                                }
                         }
 
                         printf("\n===========================\n");
@@ -113,19 +130,35 @@ void control_cnt(void* aux){
                 }
 
                 //loading phase
-                struct message move_msg = {
-                        row: current_row,
-                        col: current_col,
-                        current_payload: cnt_purposes[i].loading_area,
-                        required_payload: cnt_purposes[i].loading_area,
-                        cmd: 0
-                };
-                send_message_to_control_node(i, move_msg);
+                for(int j = 0; j < robotsN; j++){
+                        if(j == i){
+                                struct message load_msg = {
+                                        row: current_row,
+                                        col: current_col,
+                                        current_payload: cnt_purposes[i].loading_area,
+                                        required_payload: cnt_purposes[i].loading_area,
+                                        cmd: 0
+                                };
+                                send_message_to_control_node(i, load_msg);
+                        }else{
+                                struct message standby_msg = {
+                                        row: -1,
+                                        col: -1,
+                                        current_payload: -1,
+                                        required_payload: -1,
+                                        cmd: 0
+                                };
+                                send_message_to_control_node(j, standby_msg);
+                        }                        
+                }
 
                 unblock_threads();
                 increase_step();
 
-                while(receive_message_from_robot(i).cmd == -1){
+                //stand by message
+                for(int j = 0; j < robotsN; j++){
+                        while(receive_message_from_robot(j).cmd < 0){
+                        }
                 }
 
                 printf("\n===========================\n");
@@ -160,7 +193,10 @@ void control_cnt(void* aux){
                         unblock_threads();
                         increase_step();
 
-                        while(receive_message_from_robot(i).cmd == -1){
+                        //stand by message
+                        for(int j = 0; j < robotsN; j++){
+                                while(receive_message_from_robot(j).cmd < 0){
+                                }
                         }
 
                         printf("\n===========================\n");
@@ -174,23 +210,40 @@ void control_cnt(void* aux){
 // test code for robot thread
 void control_thread(void* aux){
         struct cnt_purpose info = *((struct cnt_purpose *)aux);
-
-        block_thread();
-
         struct message cnt_message;
         int message_index = info.robot->name[1] - '0' - 1;
 
-        while(1){
-                cnt_message = receive_message_from_control_node(message_index);
+        //first block
+        block_thread();
 
-                if(cnt_message.cmd > -1){
+        while(1){
+                //stand by massage
+                cnt_message = receive_message_from_control_node(message_index);
+                while(cnt_message.cmd < 0){
+                        cnt_message = receive_message_from_control_node(message_index);
+                }
+
+                //moving or loading order
+                if(cnt_message.row >= 0){
                         setRobot(info.robot, info.robot->name, cnt_message.row, cnt_message.col, cnt_message.required_payload, cnt_message.current_payload);
 
                         struct message message = {
-                                row: 0,
-                                col: 0,
-                                current_payload: 0,
-                                required_payload: 0,
+                                row: cnt_message.row,
+                                col: cnt_message.col,
+                                current_payload: cnt_message.current_payload,
+                                required_payload: cnt_message.required_payload,
+                                cmd: 1
+                        };
+
+                        send_message_to_robot(message_index,message);
+                }else{ 
+                        //stand by order
+
+                        struct message message = {
+                                row: -1,
+                                col: -1,
+                                current_payload: -1,
+                                required_payload: -1,
                                 cmd: 1
                         };
 
