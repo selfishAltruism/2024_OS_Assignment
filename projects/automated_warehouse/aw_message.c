@@ -6,16 +6,6 @@
 struct message_box* boxes_from_central_control_node;
 struct message_box* boxes_from_robots;
 
-void allocate_message_boxes(int num_robots) {
-    boxes_from_central_control_node = (struct message_box *)malloc(num_robots * sizeof(struct message_box));
-    
-    boxes_from_robots = (struct message_box *)malloc(num_robots * sizeof(struct message_box));
-}
-
-void deallocate_message_boxes() {
-    free(boxes_from_central_control_node);
-    free(boxes_from_robots);
-}
 
 struct message empty_message = {
     row: -1,
@@ -26,13 +16,32 @@ struct message empty_message = {
 };
 
 
+void allocate_message_boxes(int num_robots) {
+    boxes_from_central_control_node = (struct message_box *)malloc(num_robots * sizeof(struct message_box));
+    boxes_from_robots = (struct message_box *)malloc(num_robots * sizeof(struct message_box));
+
+    for(int i = 0; i < num_robots; i++){
+        boxes_from_central_control_node[i].dirtyBit = 0;
+        boxes_from_central_control_node[i].msg = empty_message;
+        boxes_from_robots[i].dirtyBit = 0;
+        boxes_from_robots[i].msg = empty_message;
+    }
+
+}
+
+void deallocate_message_boxes() {
+    free(boxes_from_central_control_node);
+    free(boxes_from_robots);
+}
+
+
 void send_message_to_control_node(int id, struct message msg) {
     boxes_from_central_control_node[id].msg = msg;
     boxes_from_central_control_node[id].dirtyBit = 1;
 }
 
 struct message receive_message_from_control_node(int id) {
-    if (boxes_from_central_control_node[id].dirtyBit) {
+    if (boxes_from_central_control_node[id].dirtyBit == 1) {
         struct message received_msg = boxes_from_central_control_node[id].msg;
         boxes_from_central_control_node[id].dirtyBit = 0;
 
@@ -47,7 +56,7 @@ void send_message_to_robot(int id, struct message msg) {
 }
 
 struct message receive_message_from_robot(int id) {
-    if (boxes_from_robots[id].dirtyBit) {
+    if (boxes_from_robots[id].dirtyBit == 1) {
         struct message received_msg = boxes_from_robots[id].msg;
         boxes_from_robots[id].dirtyBit = 0;
 

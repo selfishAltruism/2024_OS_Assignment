@@ -60,6 +60,8 @@ void control_cnt(void* aux){
         struct cnt_purpose *cnt_purposes = purpose->cnt_purposes;
         int robotsN = purpose->robotsN;
 
+        struct message robot_message;
+
         int dest_row;
         int dest_col;
 
@@ -70,10 +72,11 @@ void control_cnt(void* aux){
 
         printf("\nautomated warehouse starts operating!\n");
 
-        for(int i = 0; i < robotsN; i++){
+        printf("\n===========================\n");
+        print_map(robots, robotsN);
 
-                current_row = 5;
-                current_col = 5;
+        for(int i = 0; i < robotsN; i++){
+                findValue('W', &current_row, &current_col);
                 
                 //move to loading area phase
                 loading_area = cnt_purposes[i].loading_area + '0';
@@ -115,13 +118,18 @@ void control_cnt(void* aux){
                                 }                        
                         }
 
-
                         unblock_threads();
                         increase_step();
 
                         //stand by message
                         for(int j = 0; j < robotsN; j++){
-                                while(receive_message_from_robot(j).cmd < 0){
+                                robot_message = receive_message_from_robot(j);
+                                while(robot_message.cmd < 0){
+                                        robot_message = receive_message_from_robot(j);
+                                }
+                                if(robot_message.row >= 0){
+                                        current_row = robot_message.row;
+                                        current_col = robot_message.col;
                                 }
                         }
 
@@ -157,7 +165,13 @@ void control_cnt(void* aux){
 
                 //stand by message
                 for(int j = 0; j < robotsN; j++){
-                        while(receive_message_from_robot(j).cmd < 0){
+                        robot_message = receive_message_from_robot(j);
+                        while(robot_message.cmd < 0){
+                                robot_message = receive_message_from_robot(j);
+                        }
+                        if(robot_message.row >= 0){
+                                current_row = robot_message.row;
+                                current_col = robot_message.col;
                         }
                 }
 
@@ -208,7 +222,13 @@ void control_cnt(void* aux){
 
                         //stand by message
                         for(int j = 0; j < robotsN; j++){
-                                while(receive_message_from_robot(j).cmd < 0){
+                                robot_message = receive_message_from_robot(j);
+                                while(robot_message.cmd < 0){
+                                        robot_message = receive_message_from_robot(j);
+                                }
+                                if(robot_message.row >= 0){
+                                        current_row = robot_message.row;
+                                        current_col = robot_message.col;
                                 }
                         }
 
@@ -248,7 +268,7 @@ void control_thread(void* aux){
                                 cmd: 1
                         };
 
-                        send_message_to_robot(message_index,message);
+                        send_message_to_robot(message_index, message);
                 }else{ 
                         //stand by order
 
