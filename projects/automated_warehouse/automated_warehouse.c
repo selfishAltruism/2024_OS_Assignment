@@ -181,14 +181,27 @@ void control_cnt(void* aux){
                                 break;
                         }
 
-                        struct message move_msg = {
-                                row: current_row,
-                                col: current_col,
-                                current_payload: cnt_purposes[i].loading_area,
-                                required_payload: cnt_purposes[i].loading_area,
-                                cmd: 0
-                        };
-                        send_message_to_control_node(i, move_msg);
+                        for(int j = 0; j < robotsN; j++){
+                                if(j == i){
+                                        struct message move_msg = {
+                                                row: current_row,
+                                                col: current_col,
+                                                current_payload: cnt_purposes[i].loading_area,
+                                                required_payload: cnt_purposes[i].loading_area,
+                                                cmd: 0
+                                        };
+                                        send_message_to_control_node(i, move_msg);
+                                }else{
+                                        struct message standby_msg = {
+                                                row: -1,
+                                                col: -1,
+                                                current_payload: -1,
+                                                required_payload: -1,
+                                                cmd: 0
+                                        };
+                                        send_message_to_control_node(j, standby_msg);
+                                }                        
+                        }
 
                         unblock_threads();
                         increase_step();
