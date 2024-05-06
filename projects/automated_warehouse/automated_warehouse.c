@@ -29,14 +29,40 @@ struct purpose {
         int robotsN;
 };
 
-int is_valid_move(int row, int col, char direction) {
-    switch (direction) {
-        case 'U': return map_draw_default[row - 1][col] != 'X' && map_draw_default[row - 1][col] != 'W'; 
-        case 'D': return map_draw_default[row + 1][col] != 'X' && map_draw_default[row + 1][col] != 'W'; 
-        case 'L': return map_draw_default[row][col - 1] != 'X' && map_draw_default[row][col - 1] != 'W'; 
-        case 'R': return map_draw_default[row][col + 1] != 'X' && map_draw_default[row][col + 1] != 'W'; 
-        default: return 0; 
-    }
+int check_valid_move(int row, int col, char direction, char loading_area, char unloading_area){
+        return map_draw_default[row][col] == loading_area || map_draw_default[row][col] == ' ' || map_draw_default[row][col] == unloading_area || map_draw_default[row][col] == 'S';
+}
+
+int is_valid_move(int row, int col, char direction, char loading_area, char unloading_area, int is_loading) {
+        if(is_loading == 0){
+                switch (direction) {
+                        case 'U': return check_valid_move(row - 1, col, direction, loading_area, unloading_area) && (map_draw_default[row - 1][col] == loading_area || check_valid_move(row - 2, col, direction, loading_area, unloading_area) || check_valid_move(row - 1, col - 1, direction, loading_area, unloading_area) || check_valid_move(row - 1, col + 1, direction, loading_area, unloading_area));
+                        case 'D': return check_valid_move(row + 1, col, direction, loading_area, unloading_area) && (map_draw_default[row + 1][col] == loading_area || check_valid_move(row + 2, col, direction, loading_area, unloading_area) || check_valid_move(row + 1, col - 1, direction, loading_area, unloading_area) || check_valid_move(row + 1, col + 1, direction, loading_area, unloading_area));
+                        case 'L': return check_valid_move(row, col - 1, direction, loading_area, unloading_area) && (map_draw_default[row][col - 1] == loading_area || check_valid_move(row, col - 2, direction, loading_area, unloading_area) || check_valid_move(row + 1, col - 1, direction, loading_area, unloading_area) || check_valid_move(row - 1, col - 1, direction, loading_area, unloading_area));
+                        case 'R': return check_valid_move(row, col + 1, direction, loading_area, unloading_area) && (map_draw_default[row][col + 1] == loading_area || check_valid_move(row, col + 2, direction, loading_area, unloading_area) || check_valid_move(row + 1, col + 1, direction, loading_area, unloading_area) || check_valid_move(row - 1, col + 1, direction, loading_area, unloading_area));
+                        default: return 0; 
+                }
+        }else{
+                switch (direction) {
+                        case 'U': return check_valid_move(row - 1, col, direction, loading_area, unloading_area) && (map_draw_default[row - 1][col] == unloading_area || check_valid_move(row - 2, col, direction, loading_area, unloading_area) || check_valid_move(row - 1, col - 1, direction, loading_area, unloading_area) || check_valid_move(row - 1, col + 1, direction, loading_area, unloading_area));
+                        case 'D': return check_valid_move(row + 1, col, direction, loading_area, unloading_area) && (map_draw_default[row + 1][col] == unloading_area || check_valid_move(row + 2, col, direction, loading_area, unloading_area) || check_valid_move(row + 1, col - 1, direction, loading_area, unloading_area) || check_valid_move(row + 1, col + 1, direction, loading_area, unloading_area));
+                        case 'L': return check_valid_move(row, col - 1, direction, loading_area, unloading_area) && (map_draw_default[row][col - 1] == unloading_area || check_valid_move(row, col - 2, direction, loading_area, unloading_area) || check_valid_move(row + 1, col - 1, direction, loading_area, unloading_area) || check_valid_move(row - 1, col - 1, direction, loading_area, unloading_area));
+                        case 'R': return check_valid_move(row, col + 1, direction, loading_area, unloading_area) && (map_draw_default[row][col + 1] == unloading_area || check_valid_move(row, col + 2, direction, loading_area, unloading_area) || check_valid_move(row + 1, col + 1, direction, loading_area, unloading_area) || check_valid_move(row - 1, col + 1, direction, loading_area, unloading_area));
+                        default: return 0; 
+                }  
+        }
+
+}
+
+
+int check_cycle(char direction, char* record_move) {
+        return !(record_move[1] == direction && record_move[0] == record_move[2] && record_move[2] != direction);
+}
+
+int save_direction(char direction, char* record_move){
+        record_move[0] = record_move[1];
+        record_move[1] = record_move[2];
+        record_move[2] = direction;
 }
 
 void findValue(char value, int* row_index, int* col_index) {
@@ -53,6 +79,7 @@ void findValue(char value, int* row_index, int* col_index) {
         }
     }
 }
+
 
 // test code for central control node thread
 void control_cnt(void* aux){
@@ -82,18 +109,38 @@ void control_cnt(void* aux){
                 loading_area = cnt_purposes[i].loading_area + '0';
                 findValue(loading_area, &dest_row, &dest_col);
 
+                char record_move[3] = "   ";
+
                 while (current_row != dest_row || current_col != dest_col) {
-                        if (current_row > dest_row && is_valid_move(current_row, current_col, 'U')) {
+                        if (current_row > dest_row && is_valid_move(current_row, current_col, 'U', loading_area, cnt_purposes[i].unloading_area, 0) && check_cycle('U', record_move)) {
+                                save_direction('U', record_move);
                                 current_row--;
-                        } else if (current_row < dest_row && is_valid_move(current_row, current_col, 'D')) {
+                        } else if (current_row < dest_row && is_valid_move(current_row, current_col, 'D', loading_area, cnt_purposes[i].unloading_area, 0) && check_cycle('D', record_move)) {
+                                save_direction('D', record_move);
                                 current_row++;
-                        } else if (current_col > dest_col && is_valid_move(current_row, current_col, 'L')) {
+                        } else if (current_col > dest_col && is_valid_move(current_row, current_col, 'L', loading_area, cnt_purposes[i].unloading_area, 0) && check_cycle('L', record_move)) {
+                                save_direction('L', record_move);
                                 current_col--;
-                        } else if (current_col < dest_col && is_valid_move(current_row, current_col, 'R')) {
+                        } else if (current_col < dest_col && is_valid_move(current_row, current_col, 'R', loading_area,cnt_purposes[i].unloading_area, 0) && check_cycle('R', record_move)) {
+                                save_direction('R', record_move);
                                 current_col++; 
                         } else {
-                                printf("Error: Cannot move to destination.\n");
-                                break;
+                                if (is_valid_move(current_row, current_col, 'U', loading_area, cnt_purposes[i].unloading_area, 0) && check_cycle('D', record_move)) {
+                                        save_direction('U', record_move);
+                                        current_row--;
+                                } else if (is_valid_move(current_row, current_col, 'D', loading_area, cnt_purposes[i].unloading_area, 0) && check_cycle('D', record_move)) {
+                                        save_direction('D', record_move);
+                                        current_row++;
+                                } else if (is_valid_move(current_row, current_col, 'L', loading_area, cnt_purposes[i].unloading_area, 0) && check_cycle('D', record_move)) {
+                                        save_direction('L', record_move);
+                                        current_col--;
+                                } else if (is_valid_move(current_row, current_col, 'R', loading_area,cnt_purposes[i].unloading_area, 0) && check_cycle('D', record_move)) {
+                                        save_direction('R', record_move);
+                                        current_col++; 
+                                } else {
+                                        printf("Error: Cannot move to destination.\n");
+                                        break;
+                                }
                         }
 
                         for(int j = 0; j < robotsN; j++){
@@ -181,18 +228,38 @@ void control_cnt(void* aux){
                 //move to unloading area phase
                 findValue(cnt_purposes[i].unloading_area, &dest_row, &dest_col);
 
+                save_direction(' ', record_move);
+
                 while (current_row != dest_row || current_col != dest_col) {
-                        if (current_row > dest_row && is_valid_move(current_row, current_col, 'U')) {
+                        if (current_row > dest_row && is_valid_move(current_row, current_col, 'U', loading_area, cnt_purposes[i].unloading_area, 1) && check_cycle('U', record_move)) {
+                                save_direction('U', record_move);
                                 current_row--;
-                        } else if (current_row < dest_row && is_valid_move(current_row, current_col, 'D')) {
+                        } else if (current_row < dest_row && is_valid_move(current_row, current_col, 'D', loading_area, cnt_purposes[i].unloading_area, 1) && check_cycle('D', record_move)) {
+                                save_direction('D', record_move);
                                 current_row++;
-                        } else if (current_col > dest_col && is_valid_move(current_row, current_col, 'L')) {
+                        } else if (current_col > dest_col && is_valid_move(current_row, current_col, 'L', loading_area, cnt_purposes[i].unloading_area, 1) && check_cycle('L', record_move)) {
+                                save_direction('L', record_move);
                                 current_col--;
-                        } else if (current_col < dest_col && is_valid_move(current_row, current_col, 'R')) {
+                        } else if (current_col < dest_col && is_valid_move(current_row, current_col, 'R', loading_area,cnt_purposes[i].unloading_area, 1) && check_cycle('R', record_move)) {
+                                save_direction('R', record_move);
                                 current_col++; 
                         } else {
-                                printf("Error: Cannot move to destination.\n");
-                                break;
+                                if (is_valid_move(current_row, current_col, 'U', loading_area, cnt_purposes[i].unloading_area, 1) && check_cycle('D', record_move)) {
+                                        save_direction('U', record_move);
+                                        current_row--;
+                                } else if (is_valid_move(current_row, current_col, 'D', loading_area, cnt_purposes[i].unloading_area, 1) && check_cycle('D', record_move)) {
+                                        save_direction('D', record_move);
+                                        current_row++;
+                                } else if (is_valid_move(current_row, current_col, 'L', loading_area, cnt_purposes[i].unloading_area, 1) && check_cycle('D', record_move)) {
+                                        save_direction('L', record_move);
+                                        current_col--;
+                                } else if (is_valid_move(current_row, current_col, 'R', loading_area,cnt_purposes[i].unloading_area, 1) && check_cycle('D', record_move)) {
+                                        save_direction('R', record_move);
+                                        current_col++; 
+                                } else {
+                                        printf("Error: Cannot move to destination.\n");
+                                        break;
+                                }
                         }
 
                         for(int j = 0; j < robotsN; j++){
@@ -313,7 +380,6 @@ void run_automated_warehouse(char **argv)
         //define message_boxes
         allocate_message_boxes(robotsN);
 
-
         int i = 0;
         char *robotsSet;
         size_t len = strlen(argv[2]) + 1;
@@ -339,7 +405,7 @@ void run_automated_warehouse(char **argv)
                 cnt_purposes[i].loading_area = loading_area;
                 cnt_purposes[i].unloading_area = unloading_area;
                 
-                threads[i + 1] = thread_create(robotName, 0,  control_thread, &cnt_purposes[i]);
+                threads[i + 1] = thread_create(robotName, 0, control_thread, &cnt_purposes[i]);
 
                 i++;
                 token = strtok_r(NULL, ":", &robotsSet);
